@@ -94,15 +94,15 @@ func (f *floatSlice) quickSort() {
 	if len(f.slice) <= 1 {
 		return
 	}
-	pivot := f.slice[0]
+	supportElement := f.slice[0]
 	smallerSlice := 0
 	largestSlice := len(f.slice) - 1
 
 	for smallerSlice <= largestSlice {
-		for f.slice[smallerSlice] < pivot {
+		for f.slice[smallerSlice] < supportElement {
 			smallerSlice++
 		}
-		for pivot < f.slice[largestSlice] {
+		for supportElement < f.slice[largestSlice] {
 			largestSlice--
 		}
 		if smallerSlice <= largestSlice {
@@ -125,31 +125,29 @@ func (b *byteSlice) quickSort() {
 	if len(b.slice) <= 1 {
 		return
 	}
-	pivotIndex := len(b.slice) / 2
-	pivot := b.slice[pivotIndex]
+	supportElement := b.slice[0]
+	smallerSlice := 0
+	largestSlice := len(b.slice) - 1
 
-	left := 0
-	right := len(b.slice) - 1
-
-	for left <= right {
-		for utf8.RuneCountInString(b.slice[left]) < utf8.RuneCountInString(pivot) {
-			left++
+	for smallerSlice <= largestSlice {
+		for utf8.RuneCountInString(b.slice[smallerSlice]) < utf8.RuneCountInString(supportElement) {
+			smallerSlice++
 		}
-		for utf8.RuneCountInString(pivot) < utf8.RuneCountInString(b.slice[right]) {
-			right--
+		for utf8.RuneCountInString(supportElement) < utf8.RuneCountInString(b.slice[largestSlice]) {
+			largestSlice--
 		}
-		if left <= right {
-			b.slice[left], b.slice[right] = b.slice[right], b.slice[left]
-			left++
-			right--
+		if smallerSlice <= largestSlice {
+			b.slice[smallerSlice], b.slice[largestSlice] = b.slice[largestSlice], b.slice[smallerSlice]
+			smallerSlice++
+			largestSlice--
 		}
 	}
-	if right > 0 {
-		rightSlice := byteSlice{b.slice[:right+1]}
+	if largestSlice > 0 {
+		rightSlice := byteSlice{b.slice[:largestSlice+1]}
 		rightSlice.quickSort()
 	}
-	if left < len(b.slice) {
-		leftSlice := byteSlice{b.slice[left:]}
+	if smallerSlice < len(b.slice) {
+		leftSlice := byteSlice{b.slice[smallerSlice:]}
 		leftSlice.quickSort()
 	}
 }
