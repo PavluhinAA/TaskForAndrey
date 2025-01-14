@@ -24,7 +24,7 @@ func main() {
 
 	if inputString == "" {
 
-		fmt.Println("no input detected")
+		fmt.Println("error: no input detected")
 		os.Exit(2)
 
 	}
@@ -36,27 +36,35 @@ func main() {
 	sortingSlice.quickSort()
 
 	output := sortingSlice.formatting()
-	fmt.Println("result: ", strings.Join(output, " "))
+	fmt.Println("result:", strings.Join(output, " "))
 
 }
 
 func typeDefinition(slice []string) sort {
 
 	resultFloat := make(floatSlice, 0)
-	resultString := make(symbolSlice, 0)
+	resultSymbol := make(symbolSlice, 0)
 
-	if _, ok := strconv.ParseFloat(slice[0], 64); ok == nil {
+	for _, element := range slice {
 
-		for _, element := range slice {
+		if symbol, ok := strconv.ParseFloat(element, 64); ok == nil {
 
-			number, errorTransformations := strconv.ParseFloat(element, 64)
+			resultFloat = append(resultFloat, symbol)
 
-			if errorTransformations != nil {
-				fmt.Println("the symbols have different types")
-				os.Exit(2)
-			}
+		} else {
 
-			resultFloat = append(resultFloat, number)
+			resultSymbol = append(resultSymbol, []rune(element)...)
+
+		}
+
+	}
+
+	if len(resultFloat) > 0 {
+
+		if len(resultSymbol) > 0 {
+
+			fmt.Println("error: the slice elements are of different types")
+			os.Exit(2)
 
 		}
 
@@ -64,13 +72,7 @@ func typeDefinition(slice []string) sort {
 
 	} else {
 
-		for _, str := range slice {
-
-			resultString = append(resultString, []rune(str)...)
-
-		}
-
-		return &resultString
+		return &resultSymbol
 
 	}
 
@@ -84,10 +86,7 @@ func (f *floatSlice) quickSort() {
 
 	smaller := make(floatSlice, 0)
 	largest := make(floatSlice, 0)
-
-	var (
-		supportElement = (*f)[0]
-	)
+	supportElement := (*f)[0]
 
 	for _, element := range (*f)[1:] {
 
@@ -118,10 +117,7 @@ func (s *symbolSlice) quickSort() {
 
 	smaller := make(symbolSlice, 0)
 	largest := make(symbolSlice, 0)
-
-	var (
-		supportElement = (*s)[0]
-	)
+	supportElement := (*s)[0]
 
 	for _, element := range (*s)[1:] {
 
