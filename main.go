@@ -13,18 +13,22 @@ type sort interface {
 	formatting() []string
 }
 
-type stringSlice struct {
-	slice []rune
-}
+type symbolSlice []rune
 
-type floatSlice struct {
-	slice []float64
-}
+type floatSlice []float64
 
 func main() {
 
 	inputString, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	inputString = strings.Trim(inputString, "\n")
+
+	if inputString == "" {
+
+		fmt.Println("no input detected")
+		os.Exit(2)
+
+	}
+
 	inputSlice := strings.Split(inputString, " ")
 
 	sortingSlice := typeDefinition(inputSlice)
@@ -32,25 +36,31 @@ func main() {
 	sortingSlice.quickSort()
 
 	output := sortingSlice.formatting()
-	fmt.Println(strings.Join(output, " "))
+	fmt.Println("result: ", strings.Join(output, " "))
 
 }
 
 func typeDefinition(slice []string) sort {
 
-	resultFloat := make([]float64, 0)
-	resultString := make([]rune, 0)
+	resultFloat := make(floatSlice, 0)
+	resultString := make(symbolSlice, 0)
 
-	if _, err := strconv.ParseFloat(slice[0], 64); err == nil {
+	if _, ok := strconv.ParseFloat(slice[0], 64); ok == nil {
 
 		for _, element := range slice {
 
-			number, _ := strconv.ParseFloat(element, 64)
+			number, errorTransformations := strconv.ParseFloat(element, 64)
+
+			if errorTransformations != nil {
+				fmt.Println("the symbols have different types")
+				os.Exit(2)
+			}
+
 			resultFloat = append(resultFloat, number)
 
 		}
 
-		return &floatSlice{resultFloat}
+		return &resultFloat
 
 	} else {
 
@@ -60,7 +70,7 @@ func typeDefinition(slice []string) sort {
 
 		}
 
-		return &stringSlice{resultString}
+		return &resultString
 
 	}
 
@@ -68,16 +78,18 @@ func typeDefinition(slice []string) sort {
 
 func (f *floatSlice) quickSort() {
 
-	if len(f.slice) <= 0 {
+	if len(*f) <= 0 {
 		return
 	}
 
+	smaller := make(floatSlice, 0)
+	largest := make(floatSlice, 0)
+
 	var (
-		smaller, largest []float64
-		supportElement   = f.slice[0]
+		supportElement = (*f)[0]
 	)
 
-	for _, element := range f.slice[1:] {
+	for _, element := range (*f)[1:] {
 
 		if element <= supportElement {
 
@@ -91,28 +103,27 @@ func (f *floatSlice) quickSort() {
 
 	}
 
-	newSmaller := floatSlice{smaller}
-	newLargest := floatSlice{largest}
+	smaller.quickSort()
+	largest.quickSort()
 
-	newSmaller.quickSort()
-	newLargest.quickSort()
-
-	f.slice = append(append(newSmaller.slice, supportElement), newLargest.slice...)
+	*f = append(append(smaller, supportElement), largest...)
 
 }
 
-func (s *stringSlice) quickSort() {
+func (s *symbolSlice) quickSort() {
 
-	if len(s.slice) <= 0 {
+	if len(*s) <= 0 {
 		return
 	}
 
+	smaller := make(symbolSlice, 0)
+	largest := make(symbolSlice, 0)
+
 	var (
-		smaller, largest []rune
-		supportElement   = s.slice[0]
+		supportElement = (*s)[0]
 	)
 
-	for _, element := range s.slice[1:] {
+	for _, element := range (*s)[1:] {
 
 		if element <= supportElement {
 
@@ -126,21 +137,18 @@ func (s *stringSlice) quickSort() {
 
 	}
 
-	newSmaller := stringSlice{smaller}
-	newLargest := stringSlice{largest}
+	smaller.quickSort()
+	largest.quickSort()
 
-	newSmaller.quickSort()
-	newLargest.quickSort()
-
-	s.slice = append(append(newSmaller.slice, supportElement), newLargest.slice...)
+	*s = append(append(smaller, supportElement), largest...)
 
 }
 
 func (f *floatSlice) formatting() []string {
 
-	outputSlice := make([]string, 0)
+	outputSlice := make([]string, len(*f))
 
-	for i, number := range f.slice {
+	for i, number := range *f {
 
 		formatNumber := strconv.FormatFloat(number, 'g', 10, 64)
 		outputSlice[i] = formatNumber
@@ -151,11 +159,11 @@ func (f *floatSlice) formatting() []string {
 
 }
 
-func (s *stringSlice) formatting() []string {
+func (s *symbolSlice) formatting() []string {
 
-	outputSlice := make([]string, 0)
+	outputSlice := make([]string, len(*s))
 
-	for i, element := range s.slice {
+	for i, element := range *s {
 
 		outputSlice[i] = string(element)
 
