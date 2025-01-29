@@ -57,5 +57,6 @@ func main() {
 			sum = 0
 		}
 	}
+	close(stop)
 	wg.Wait()
 }
