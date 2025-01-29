@@ -1,170 +1,149 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
+	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
-type sort interface {
-	quickSort()
-	formatting() []string
+func main() {
+	var (
+		sum int32
+	)
+	stop := make(chan struct{})
+	wg := new(sync.WaitGroup)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		tick := time.NewTicker(time.Second)
+		defer tick.Stop()
+
+		for sum != 100 {
+			select {
+			case <-tick.C:
+				atomic.AddInt32(&sum, rand.Int31n(101))
+			case <-stop:
+				return
+			}
+		}
+
+	}()
+
+	go func() {
+		defer wg.Done()
+		tick := time.NewTicker(time.Second * 5)
+		defer tick.Stop()
+
+		for sum != 100 {
+			select {
+			case <-tick.C:
+				atomic.AddInt32(&sum, rand.Int31n(11))
+			case <-stop:
+				return
+			}
+		}
+
+	}()
+
+	for sum != 100 {
+		if sum > 100 {
+			fmt.Println(sum)
+			sum = 0
+		}
+	}
+	wg.Wait()
 }
 
-type symbolSlice []rune
+/*package main
 
-type floatSlice []float64
+import (
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+)
+
+const N = 20
 
 func main() {
 
-	inputString, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	inputString = strings.Trim(inputString, "\n")
+	fn := func(x int) int {
+		time.Sleep(time.Duration(rand.Int31n(N)) * time.Second)
+		return x * 2
+	}
+	in1 := make(chan int, N)
+	in2 := make(chan int, N)
+	out := make(chan int, N)
 
-	if inputString == "" {
-
-		fmt.Println("error: no input detected")
-		os.Exit(2)
-
+	start := time.Now()
+	merge2Channels(fn, in1, in2, out, N+1)
+	for i := 0; i < N+1; i++ {
+		in1 <- i
+		in2 <- i
 	}
 
-	inputSlice := strings.Split(inputString, " ")
-
-	sortingSlice := typeDefinition(inputSlice)
-
-	sortingSlice.quickSort()
-
-	output := sortingSlice.formatting()
-	fmt.Println("result:", strings.Join(output, " "))
-
+	orderFail := false
+	EvenFail := false
+	for i, prev := 0, 0; i < N; i++ {
+		c := <-out
+		if c%2 != 0 {
+			EvenFail = true
+		}
+		if prev >= c && i != 0 {
+			orderFail = true
+		}
+		prev = c
+		fmt.Println(c)
+	}
+	if orderFail {
+		fmt.Println("порядок нарушен")
+	}
+	if EvenFail {
+		fmt.Println("Есть не четные")
+	}
+	duration := time.Since(start)
+	if duration.Seconds() > N {
+		fmt.Println("Время превышено")
+	}
+	fmt.Println("Время выполнения: ", duration)
 }
 
-func typeDefinition(slice []string) sort {
+func merge2Channels(fn func(int) int, in1 chan int, in2 <-chan int, out chan<- int, n int) {
 
-	resultFloat := make(floatSlice, 0)
-	resultSymbol := make(symbolSlice, 0)
+	FX1 := func(x1 int, chan1 chan<- int, wg *sync.WaitGroup) {
+		defer close(chan1)
+		defer wg.Done()
+		chan1 <- fn(x1)
+	}
 
-	for _, element := range slice {
+	FX2 := func(x2 int, chan2 chan<- int, wg *sync.WaitGroup) {
+		defer close(chan2)
+		defer wg.Done()
+		chan2 <- fn(x2)
+	}
 
-		if symbol, ok := strconv.ParseFloat(element, 64); ok == nil {
+	funC := func() {
+		wg := new(sync.WaitGroup)
+		defer close(out)
 
-			resultFloat = append(resultFloat, symbol)
+		for i := 0; i < n; i++ {
+			chan1 := make(chan int)
+			chan2 := make(chan int)
+			x1, x2 := <-in1, <-in2
+			wg.Add(2)
+			go FX1(x1, chan1, wg)
+			go FX2(x2, chan2, wg)
 
-		} else {
-
-			resultSymbol = append(resultSymbol, []rune(element)...)
+			y1, y2 := <-chan1, <-chan2
+			res := y1 + y2
+			out <- res
 
 		}
-
+		wg.Wait()
 	}
-
-	if len(resultFloat) > 0 {
-
-		if len(resultSymbol) > 0 {
-
-			fmt.Println("error: the slice elements are of different types")
-			os.Exit(2)
-
-		}
-
-		return &resultFloat
-
-	} else {
-
-		return &resultSymbol
-
-	}
-
-}
-
-func (f *floatSlice) quickSort() {
-
-	if len(*f) <= 0 {
-		return
-	}
-
-	smaller := make(floatSlice, 0)
-	largest := make(floatSlice, 0)
-	supportElement := (*f)[0]
-
-	for _, element := range (*f)[1:] {
-
-		if element <= supportElement {
-
-			smaller = append(smaller, element)
-
-		} else {
-
-			largest = append(largest, element)
-
-		}
-
-	}
-
-	smaller.quickSort()
-	largest.quickSort()
-
-	*f = append(append(smaller, supportElement), largest...)
-
-}
-
-func (s *symbolSlice) quickSort() {
-
-	if len(*s) <= 0 {
-		return
-	}
-
-	smaller := make(symbolSlice, 0)
-	largest := make(symbolSlice, 0)
-	supportElement := (*s)[0]
-
-	for _, element := range (*s)[1:] {
-
-		if element <= supportElement {
-
-			smaller = append(smaller, element)
-
-		} else {
-
-			largest = append(largest, element)
-
-		}
-
-	}
-
-	smaller.quickSort()
-	largest.quickSort()
-
-	*s = append(append(smaller, supportElement), largest...)
-
-}
-
-func (f *floatSlice) formatting() []string {
-
-	outputSlice := make([]string, len(*f))
-
-	for i, number := range *f {
-
-		formatNumber := strconv.FormatFloat(number, 'g', 10, 64)
-		outputSlice[i] = formatNumber
-
-	}
-
-	return outputSlice
-
-}
-
-func (s *symbolSlice) formatting() []string {
-
-	outputSlice := make([]string, len(*s))
-
-	for i, element := range *s {
-
-		outputSlice[i] = string(element)
-
-	}
-
-	return outputSlice
-
-}
+	go funC()
+}*/
