@@ -23,7 +23,7 @@ func main() {
 		tick := time.NewTicker(time.Second)
 		defer tick.Stop()
 
-		for sum != 100 {
+		for {
 			select {
 			case <-tick.C:
 				atomic.AddInt32(&sum, rand.Int31n(101))
@@ -39,7 +39,7 @@ func main() {
 		tick := time.NewTicker(time.Second * 5)
 		defer tick.Stop()
 
-		for sum != 100 {
+		for {
 			select {
 			case <-tick.C:
 				atomic.AddInt32(&sum, rand.Int31n(11))
