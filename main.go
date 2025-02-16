@@ -50,7 +50,7 @@ func check(wg *sync.WaitGroup, sum, sig *atomic.Int32, stop chan struct{}) {
 		sum.Store(0)
 	}
 	stop <- struct{}{}
-	fmt.Println("ok")
+	fmt.Println("the process is completed because the amount is 100")
 }
 
 func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
@@ -66,7 +66,7 @@ func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
 	case <-stopSignal:
 		stop <- struct{}{}
 		sig.Add(1)
-		fmt.Println("stop")
+		fmt.Println("the process is completed because the completion signal has been received")
 		return
 
 	case <-stop:
