@@ -1,90 +1,40 @@
 package main
 
 import (
+	"container/list"
 	"fmt"
-	"math/rand"
-	"os"
-	"os/signal"
-	"sync"
-	"sync/atomic"
-	"syscall"
-	"time"
 )
 
-func randomNumber(wg *sync.WaitGroup, sum *atomic.Int32, stop chan struct{}) {
-	wg.Add(1)
-	defer wg.Done()
+func Push(elem interface{}, queue *list.List) {
+	// ...
+	queue.PushBack(elem)
+}
 
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+func Pop(queue *list.List) interface{} {
+	// ...
+	return queue.Remove(queue.Front())
+}
 
-	tick := time.NewTicker(time.Second * 2)
-	defer tick.Stop()
-
-	for {
-		select {
-
-		case <-tick.C:
-			sum.Add(int32(random.Intn(101)))
-
-		case <-stop:
-			return
-		}
+func printQueue(queue *list.List) {
+	// ...
+	for temp := queue.Front(); temp != nil; temp = temp.Next() {
+		fmt.Printf("%v", temp.Value)
 	}
 }
 
-func check(wg *sync.WaitGroup, sum, sig *atomic.Int32, stop chan struct{}) {
-	wg.Add(1)
-	defer wg.Done()
-
-	for sum.Load() != 100 {
-		time.Sleep(time.Second * 2)
-
-		if sig.Load() == 1 {
-			wg.Done()
-			return
-		}
-		if sum.Load() > 100 {
-
-			fmt.Println(sum.Load())
-		}
-		sum.Store(0)
-	}
-	stop <- struct{}{}
-	fmt.Println("the process is completed because the amount is 100")
-}
-
-func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
-
-	wg.Add(1)
-	defer wg.Done()
-
-	var stopSignal = make(chan os.Signal, 1)
-	signal.Notify(stopSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGKILL)
-
-	select {
-
-	case <-stopSignal:
-		stop <- struct{}{}
-		sig.Add(1)
-		fmt.Println("the process is completed because the completion signal has been received")
-		return
-
-	case <-stop:
-		return
-	}
-}
 func main() {
-	var (
-		sum, sig atomic.Int32
-		wg       sync.WaitGroup
-		stop     = make(chan struct{})
-	)
+	queue := list.New()
 
-	go randomNumber(&wg, &sum, stop)
-	go randomNumber(&wg, &sum, stop)
-	go check(&wg, &sum, &sig, stop)
-	go shutdown(&wg, &sig, stop)
+	Push(1, queue)
 
-	wg.Wait()
-	close(stop)
+	Push(2, queue)
+
+	Push(3, queue)
+
+	printQueue(queue) // 123
+
+	Pop(queue)
+
+	printQueue(queue) // в ту же строку: 23
+
 }
