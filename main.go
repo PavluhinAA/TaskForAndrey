@@ -24,10 +24,7 @@ func randomNumber(wg *sync.WaitGroup, num *atomic.Int32, stop chan struct{}, see
 		select {
 		case <-tick.C:
 			num.Add(int32(random.Intn(101)))
-			fmt.Println("number:", num.Load())
 		case <-stop:
-			fmt.Println("stopping")
-			fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
 			return
 		}
 	}
@@ -44,9 +41,11 @@ func check(wg *sync.WaitGroup, num1, num2, sig *atomic.Int32, stop chan struct{}
 		}
 
 		if num1.Load() != 0 && num2.Load() != 0 {
+
 			sum := num1.Load() + num2.Load()
 			num1.Store(0)
 			num2.Store(0)
+
 			if sum == 100 {
 				break
 			}
@@ -58,7 +57,9 @@ func check(wg *sync.WaitGroup, num1, num2, sig *atomic.Int32, stop chan struct{}
 			}
 		}
 	}
-	stop <- struct{}{}
+	for i := 0; i < 3; i++ {
+		stop <- struct{}{}
+	}
 	fmt.Println("the process is completed because the amount is 100")
 }
 
@@ -73,13 +74,14 @@ func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
 	select {
 
 	case <-stopSignal:
-		stop <- struct{}{}
+		for i := 0; i < 2; i++ {
+			stop <- struct{}{}
+		}
 		sig.Add(1)
 		fmt.Println("the process is completed because the completion signal has been received")
 		return
 
 	case <-stop:
-		fmt.Println("stopShutdown")
 		return
 	}
 }
