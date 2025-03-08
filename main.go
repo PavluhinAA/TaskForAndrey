@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 )
 
-func randomNumber(wg *sync.WaitGroup, num *atomic.Int32, stop chan struct{}, seed int64) {
+func randomNumber(wg *sync.WaitGroup, numChan chan int, stop chan struct{}, seed int64) {
+
 	wg.Add(1)
 	defer wg.Done()
 
@@ -23,47 +24,53 @@ func randomNumber(wg *sync.WaitGroup, num *atomic.Int32, stop chan struct{}, see
 	for {
 		select {
 		case <-tick.C:
-			num.Add(int32(random.Intn(101)))
+			numChan <- random.Intn(101)
 		case <-stop:
 			return
 		}
 	}
 }
 
-func check(wg *sync.WaitGroup, num1, num2, sig *atomic.Int32, stop chan struct{}) {
+func check(wg *sync.WaitGroup, num1Chan, num2Chan chan int, stop chan struct{}) {
+
 	wg.Add(1)
 	defer wg.Done()
 
-	for {
+	var (
+		num1, num2 int
+	)
 
-		if sig.Load() == 1 {
+	for {
+		select {
+		case num1 = <-num1Chan:
+			select {
+			case num2 = <-num2Chan:
+				sum := num1 + num2
+				log.Println("num1:", num1, "|", "num2:", num2, "|", "sum:", sum) //Проверка логики
+				if sum == 100 {
+					for i := 0; i < 3; i++ {
+						stop <- struct{}{}
+					}
+					fmt.Println("the process is completed because the amount is 100")
+					return
+				}
+				if sum >= 200 {
+					fmt.Println("Error in logic")
+				}
+				if sum > 100 {
+					fmt.Println(sum)
+
+				}
+			case <-stop:
+				return
+			}
+		case <-stop:
 			return
 		}
-
-		if num1.Load() != 0 && num2.Load() != 0 {
-
-			sum := num1.Load() + num2.Load()
-			num1.Store(0)
-			num2.Store(0)
-
-			if sum == 100 {
-				break
-			}
-
-			if sum > 100 {
-
-				fmt.Println(sum)
-
-			}
-		}
 	}
-	for i := 0; i < 3; i++ {
-		stop <- struct{}{}
-	}
-	fmt.Println("the process is completed because the amount is 100")
 }
 
-func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
+func shutdown(wg *sync.WaitGroup, stop chan struct{}) {
 
 	wg.Add(1)
 	defer wg.Done()
@@ -72,12 +79,10 @@ func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
 	signal.Notify(stopSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	select {
-
 	case <-stopSignal:
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 3; i++ {
 			stop <- struct{}{}
 		}
-		sig.Add(1)
 		fmt.Println("the process is completed because the completion signal has been received")
 		return
 
@@ -88,17 +93,17 @@ func shutdown(wg *sync.WaitGroup, sig *atomic.Int32, stop chan struct{}) {
 
 func main() {
 	var (
-		num1, num2, sig atomic.Int32
-		wg              sync.WaitGroup
-		stop            = make(chan struct{})
-		seed1           = time.Now().UnixNano()
-		seed2           = time.Now().UnixNano() * time.Now().UnixNano()
+		num1Chan, num2Chan = make(chan int), make(chan int)
+		wg                 sync.WaitGroup
+		stop               = make(chan struct{}, 1)
+		seed1              = time.Now().UnixNano()
+		seed2              = time.Now().UnixNano() * time.Now().UnixNano()
 	)
 
-	go randomNumber(&wg, &num1, stop, seed1)
-	go randomNumber(&wg, &num2, stop, seed2)
-	go check(&wg, &num1, &num2, &sig, stop)
-	go shutdown(&wg, &sig, stop)
+	go randomNumber(&wg, num1Chan, stop, seed1)
+	go randomNumber(&wg, num2Chan, stop, seed2)
+	go check(&wg, num1Chan, num2Chan, stop)
+	go shutdown(&wg, stop)
 
 	wg.Wait()
 	close(stop)
