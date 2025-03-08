@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -46,7 +45,7 @@ func check(wg *sync.WaitGroup, num1Chan, num2Chan chan int, stop chan struct{}) 
 			select {
 			case num2 = <-num2Chan:
 				sum := num1 + num2
-				log.Println("num1:", num1, "|", "num2:", num2, "|", "sum:", sum) //Проверка логики
+				//log.Println("num1:", num1, "|", "num2:", num2, "|", "sum:", sum) //Проверка логики
 				if sum == 100 {
 					for i := 0; i < 3; i++ {
 						stop <- struct{}{}
