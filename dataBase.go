@@ -10,8 +10,8 @@ const dbFile = "data.json"
 
 // InMemoryDB - простая in-memory база данных с сохранением в JSON-файл
 type book struct {
-	Title    string `json:"title"`
-	Author   string `json:"author"`
+	Title    string
+	Author   string
 	reserved bool
 }
 type InMemoryDB struct {
@@ -33,8 +33,8 @@ func (db *InMemoryDB) Get(key int) book {
 }
 
 // Set - устанавливает значение по ключу
-func (db *InMemoryDB) Set(key int, value book) {
-	db.data[key] = value
+func (db *InMemoryDB) Set(title, author string) {
+	db.data = append(db.data, book{Title: title, Author: author, reserved: true})
 }
 
 // LoadFromFile - загружает данные из JSON-файла
