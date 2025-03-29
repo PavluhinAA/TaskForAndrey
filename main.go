@@ -2,108 +2,46 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
+	"log"
+	"net/http"
 )
 
-func randomNumber(wg *sync.WaitGroup, numChan chan int, stop chan struct{}, seed int64) {
+func handlerBooks(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "это список книг доступных в данный момент")
+	for i := 0; i < len
+}
+func handlerAllBooks(w http.ResponseWriter, r *http.Request) {
 
-	wg.Add(1)
-	defer wg.Done()
+}
+func handlerAuthors(w http.ResponseWriter, r *http.Request) {
 
-	tick := time.NewTicker(time.Second * 2)
-	defer tick.Stop()
+}
+func handlerReserved(w http.ResponseWriter, r *http.Request) {
 
-	random := rand.New(rand.NewSource(seed))
+}
+func handlerBooksNew(w http.ResponseWriter, r *http.Request) {
 
-	for {
-		select {
-		case <-tick.C:
-			numChan <- random.Intn(101)
-		case <-stop:
-			return
-		}
-	}
 }
 
-func check(wg *sync.WaitGroup, num1Chan, num2Chan chan int, stop chan struct{}) {
-
-	wg.Add(1)
-	defer wg.Done()
-
-	var (
-		num1, num2 int
-	)
-
-	for {
-		select {
-		case num1 = <-num1Chan:
-			select {
-			case num2 = <-num2Chan:
-				sum := num1 + num2
-				//log.Println("num1:", num1, "|", "num2:", num2, "|", "sum:", sum) //Проверка логики
-				if sum == 100 {
-					for i := 0; i < 3; i++ {
-						stop <- struct{}{}
-					}
-					fmt.Println("the process is completed because the amount is 100")
-					return
-				}
-				if sum >= 200 {
-					fmt.Println("Error in logic")
-				}
-				if sum > 100 {
-					fmt.Println(sum)
-
-				}
-			case <-stop:
-				return
-			}
-		case <-stop:
-			return
-		}
-	}
-}
-
-func shutdown(wg *sync.WaitGroup, stop chan struct{}) {
-
-	wg.Add(1)
-	defer wg.Done()
-
-	var stopSignal = make(chan os.Signal, 1)
-	signal.Notify(stopSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-
-	select {
-	case <-stopSignal:
-		for i := 0; i < 3; i++ {
-			stop <- struct{}{}
-		}
-		fmt.Println("the process is completed because the completion signal has been received")
-		return
-
-	case <-stop:
-		return
-	}
-}
+var db *InMemoryDB // Глобальная переменная для хранения экземпляра базы данных
 
 func main() {
-	var (
-		num1Chan, num2Chan = make(chan int), make(chan int)
-		wg                 sync.WaitGroup
-		stop               = make(chan struct{}, 1)
-		seed1              = time.Now().UnixNano()
-		seed2              = time.Now().UnixNano() * time.Now().UnixNano()
-	)
+	db = NewInMemoryDB() // Инициализируем базу данных
 
-	go randomNumber(&wg, num1Chan, stop, seed1)
-	go randomNumber(&wg, num2Chan, stop, seed2)
-	go check(&wg, num1Chan, num2Chan, stop)
-	go shutdown(&wg, stop)
-
-	wg.Wait()
-	close(stop)
+	// Загружаем данные из файла при запуске
+	err := db.LoadFromFile(dbFile) // Загружаем данные из JSON-файла
+	if err != nil {                // Проверяем, произошла ли ошибка при загрузке из файла
+		log.Println("Ошибка при загрузке из файла:", err) // Записываем ошибку в лог
+		// Не завершаем программу, а продолжаем работу с пустой базой данных
+	}
+	http.HandleFunc("/books/all", handlerAllBooks)
+	http.HandleFunc("/books", handlerBooks) // Регистрируем функцию-обработчик для корневого пути ("/")
+	http.HandleFunc("/author", handlerAuthors)
+	http.HandleFunc("/reserved", handlerReserved)
+	http.HandleFunc("/books/new", handlerBooksNew)
+	fmt.Println("Запускаем сервер на порту 8080") // Выводим сообщение в консоль
+	err = http.ListenAndServe(":8080", nil)       // Запускаем веб-сервер на порту 8080
+	if err != nil {                               // Проверяем, произошла ли ошибка при запуске сервера
+		fmt.Println("Ошибка запуска сервера:", err) // Выводим сообщение об ошибке в консоль
+	}
 }
