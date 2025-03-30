@@ -26,7 +26,7 @@ func handlerBooks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func handlerBooksAll(w http.ResponseWriter, _ *http.Request) {
-	errorFpr(fmt.Fprintf(w, "These books are reserved"))
+	errorFpr(fmt.Fprintf(w, "These books are reserved\n"))
 	for i := 0; i < len(db.data); i++ {
 		if db.data[i].Reserved == true {
 			stringBook, _ := json.Marshal(db.data[i])
@@ -47,7 +47,7 @@ func handlerBooksAll(w http.ResponseWriter, _ *http.Request) {
 func handlerBooksNew(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Query().Get("title")
 	author := r.URL.Query().Get("author")
-	errorFpr(fmt.Fprintf(w, "Enter the title and author of the book\nFormat:\"http://localhost:8080/books/new?title=......&author=......\""))
+	errorFpr(fmt.Fprintf(w, "Enter the title and author of the book\nFormat:\"http://localhost:8080/books/new?title=......&author=......\"\n"))
 	if title != "" && author != "" {
 		for i := 0; i < len(db.data); i++ {
 			if db.data[i].Title == title {
@@ -63,39 +63,50 @@ func handlerBooksNew(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		errorFpr(fmt.Fprintf(w, "The book has been successfully added to the library"))
-	} else {
-		errorFpr(fmt.Fprintf(w, "Specify the name of the book"))
 	}
 }
 
 func handlerReserved(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Query().Get("title")
 	reserved := r.URL.Query().Get("reserved")
-	errorFpr(fmt.Fprintf(w, "specify the book and its condition\nFormat:\"http://localhost:8080/books/reserved?title=......&reserved=true/false\""))
+	errorFpr(fmt.Fprintf(w, "specify the book and its condition\nFormat:\"http://localhost:8080/books/reserved?title=......&reserved=true/false\"\n"))
 	for i := 0; i < len(db.data); i++ {
 		if db.data[i].Title == title {
 			if reserved == "true" {
 				db.data[i].Reserved = true
+				err := db.SaveToFile(dbFile)
+				if err != nil {
+					log.Println("Error when saving to a file:", err)
+					return
+				}
 				errorFpr(fmt.Fprintf(w, "The book is reserved"))
 				return
 			}
 			if reserved == "false" {
 				db.data[i].Reserved = false
+				err := db.SaveToFile(dbFile)
+				if err != nil {
+					log.Println("Error when saving to a file:", err)
+					return
+				}
 				errorFpr(fmt.Fprintf(w, "the book is no longer preserved"))
 				return
 
 			}
 		}
 	}
-	errorFpr(fmt.Fprintf(w, "This book is not in the library."))
 }
 
 func handlerBooksDel(w http.ResponseWriter, r *http.Request) {
-	errorFpr(fmt.Fprintf(w, "Enter the name of the book you want to delete from the library\nFormat:\"http://localhost:8080/books/delete?title=......\""))
+	errorFpr(fmt.Fprintf(w, "Enter the name of the book you want to delete from the library\nFormat:\"http://localhost:8080/books/delete?title=......\"\n"))
 	title := r.URL.Query().Get("title")
 	for i := 0; i < len(db.data); i++ {
 		if db.data[i].Title == title {
 			db.data = append(db.data[:i], db.data[i+1:]...)
+			err := db.SaveToFile(dbFile)
+			if err != nil {
+				log.Println("Error when saving to a file:", err)
+			}
 			errorFpr(fmt.Fprintf(w, "The book was deleted"))
 		}
 	}
