@@ -1,0 +1,22 @@
+[
+  {
+    "title": "War and Peace",
+    "author": "Leo Tolstoy",
+    "reserved": true
+  },
+  {
+    "title": "Fahrenheit 451",
+    "author": "Ray Bradbury",
+    "reserved": false
+  },
+  {
+    "title": "Metro 2033",
+    "author": "Dmitry Glukhovsky",
+    "reserved": false
+  },
+  {
+    "title": "Theory of everything",
+    "author": "Stephen Hawking",
+    "reserved": false
+  }
+]
