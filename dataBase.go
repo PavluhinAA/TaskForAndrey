@@ -8,66 +8,67 @@ import (
 
 const dbFile = "data.json"
 
-// InMemoryDB - простая in-memory база данных с сохранением в JSON-файл
-type book struct {
-	Title    string
-	Author   string
-	reserved bool
-}
-type InMemoryDB struct {
-	data []book
+type Book struct {
+	Title    string `json:"title"`
+	Author   string `json:"author"`
+	Reserved bool   `json:"reserved"`
 }
 
-// NewInMemoryDB - конструктор для InMemoryDB
+type InMemoryDB struct {
+	data []Book
+}
+
 func NewInMemoryDB() *InMemoryDB {
 	db := &InMemoryDB{}
-	db.data = make([]book, 0)
-	// mutex инициализируется автоматически нулевым значением, что подходит для sync.RWMutex
+	db.data = make([]Book, 0)
 	return db
 }
 
-// Get - получает значение по ключу
-func (db *InMemoryDB) Get(key int) book {
-	value := db.data[key]
+func (db *InMemoryDB) Get(index int) Book {
+	value := db.data[index]
 	return value
 }
 
-// Set - устанавливает значение по ключу
 func (db *InMemoryDB) Set(title, author string) {
-	db.data = append(db.data, book{Title: title, Author: author, reserved: true})
+	db.data = append(db.data, Book{Title: title, Author: author, Reserved: false})
 }
 
-// LoadFromFile - загружает данные из JSON-файла
 func (db *InMemoryDB) LoadFromFile(filename string) error {
 
 	file, err := os.Open(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Файл не существует - ничего страшного, просто создадим пустую базу данных
-			log.Println("Файл базы данных не найден, будет создана новая база данных")
+			log.Println("The database file is not found, a new database will be created.")
 			return nil
 		}
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if errClose := file.Close(); errClose != nil {
+			log.Println("Error when closing a file:", errClose)
+		}
+	}()
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&db.data)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-// SaveToFile - сохраняет данные в JSON-файл
 func (db *InMemoryDB) SaveToFile(filename string) error {
 
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
+	defer func() {
+		if errClose := file.Close(); errClose != nil {
+			log.Println("Error when closing a file:", errClose)
+		}
+	}()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
