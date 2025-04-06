@@ -29,6 +29,7 @@ func main() {
 
 	log.Println("Starting the server")
 	err = http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		log.Println("Server startup error:", err)
 	}
