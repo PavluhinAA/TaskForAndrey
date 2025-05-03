@@ -64,9 +64,11 @@ func (db *InMemoryDB) SaveToFile(filename string) error {
 		return err
 	}
 
-	if errClose := file.Close(); errClose != nil {
-		log.Println("Error when closing a file:", errClose)
-	}
+	defer func() {
+		if errClose := file.Close(); errClose != nil {
+			log.Println("Error when closing a file:", errClose)
+		}
+	}()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
