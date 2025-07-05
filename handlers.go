@@ -45,28 +45,25 @@ func BooksAll(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func BooksNew(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		errorFpr(fmt.Fprintln(w, "Add book"))
-	case http.MethodPost:
-		title := chi.URLParam(r, "title")
-		author := chi.URLParam(r, "author")
-		if title != "" && author != "" {
-			for i := 0; i < len(db.data); i++ {
-				if db.data[i].Title == title {
-					return
-				}
-			}
-			db.Set(title, author)
-			err := db.SaveToFile(dbFile)
+func BooksNew(_ http.ResponseWriter, r *http.Request) {
+	title := chi.URLParam(r, "title")
+	author := chi.URLParam(r, "author")
 
-			if err != nil {
-				log.Println("Error when saving to a file:", err)
+	if title != "" && author != "" {
+
+		for i := 0; i < len(db.data); i++ {
+
+			if db.data[i].Title == title {
 				return
 			}
-			log.Println("Saved to a file:", dbFile)
 		}
+		db.Set(title, author)
+		err := db.SaveToFile(dbFile)
+		if err != nil {
+			log.Println("Error when saving to a file:", err)
+			return
+		}
+		log.Println("Saved to a file:", dbFile)
 	}
 }
 
