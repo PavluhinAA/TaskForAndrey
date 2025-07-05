@@ -1,54 +1,57 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 )
 
 func main() {
-	var wg sync.WaitGroup
-	go shutdown(&wg)
+	r := chi.NewRouter()
+
+	go shutdown()
 
 	db = NewInMemoryDB()
-
 	err := db.LoadFromFile(dbFile)
+
 	if err != nil {
 		log.Println("Error when downloading from a file:", err)
 	}
 
-	http.HandleFunc("/", handlerStart)
-	http.HandleFunc("/books/delete", handlerBooksDel)
-	http.HandleFunc("/books/all", handlerBooksAll)
-	http.HandleFunc("/books", handlerBooks)
-	http.HandleFunc("/books/new", handlerBooksNew)
-	http.HandleFunc("/books/reserved", handlerReserved)
+	r.Use(middleware.Logger)
 
-	log.Println("Starting the server")
-	err = http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Println("Server startup error:", err)
-	}
+	r.Get("/", Start)
 
-	wg.Wait()
+	r.Route("/books", func(r chi.Router) {
+
+		r.Get("/", Books)
+		r.Get("/all", BooksAll)
+		r.Post("/new/{title}/{author}", BooksNew)
+		r.Patch("/reserved/{title}", Reserved)
+		r.Delete("/delete/{title}", BooksDel)
+	})
+
+	log.Println("Starting server on :8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
-func shutdown(wg *sync.WaitGroup) {
-
-	wg.Add(1)
-	defer wg.Done()
+func shutdown() {
 
 	var stopSignal = make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-stopSignal
+
 	log.Println("saving data")
+
 	err := db.SaveToFile(dbFile)
 	if err != nil {
 		log.Println(err)
 	}
+
 	log.Println("saving completed, program termination")
 	os.Exit(0)
 }
